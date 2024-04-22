@@ -17,21 +17,27 @@ package com.example.exoplayer
 
 import android.annotation.SuppressLint
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import com.example.exoplayer.databinding.ActivityPlayerBinding
-import com.google.android.exoplayer2.util.Util
+import com.google.android.exoplayer2.ExoPlayer
+import com.google.android.exoplayer2.Player
 
 /**
  * A fullscreen activity to play audio or video streams.
  */
 class PlayerActivity : AppCompatActivity() {
+    companion object{
+        const val TAG = "PlayerActivity"
+    }
 
     private val viewBinding by lazy(LazyThreadSafetyMode.NONE) {
         ActivityPlayerBinding.inflate(layoutInflater)
     }
 
     private var videoPlayerController: VideoPlayerController? = null
+    private val playbackStateListener: Player.Listener = playbackStateListener()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -43,7 +49,8 @@ class PlayerActivity : AppCompatActivity() {
         super.onStart()
             videoPlayerController = VideoPlayerController(
                 this,
-                viewBinding.videoView
+                viewBinding.videoView,
+                playbackStateListener
             )
             videoPlayerController?.initializePlayer()
     }
@@ -67,5 +74,24 @@ class PlayerActivity : AppCompatActivity() {
                 or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
                 or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
                 or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION)
+    }
+
+    private fun playbackStateListener() = object : Player.Listener {
+        override fun onPlaybackStateChanged(playbackState: Int) {
+            val stateString: String = when (playbackState) {
+                // 播放器已实例化，但尚未准备就绪
+                ExoPlayer.STATE_IDLE -> "ExoPlayer.STATE_IDLE      -"
+                // 播放器无法从当前位置开始播放，因为已缓冲的数据不足
+                ExoPlayer.STATE_BUFFERING -> "ExoPlayer.STATE_BUFFERING -"
+                // 播放器可以立即从当前位置开始播放
+                // 这意味着如果播放器的 playWhenReady 属性为 true，播放器将自动开始播放媒体
+                // 如果该属性为 false，播放器会暂停播放
+                ExoPlayer.STATE_READY -> "ExoPlayer.STATE_READY     -"
+                // 播放器已完成媒体播放
+                ExoPlayer.STATE_ENDED -> "ExoPlayer.STATE_ENDED     -"
+                else -> "UNKNOWN_STATE             -"
+            }
+            Log.d(TAG, "changed state to $stateString")
+        }
     }
 }
